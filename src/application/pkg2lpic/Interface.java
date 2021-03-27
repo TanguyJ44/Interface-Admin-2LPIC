@@ -2,6 +2,7 @@ package application.pkg2lpic;
 
 import java.awt.BorderLayout;
 import java.awt.Desktop;
+import java.awt.EventQueue;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -11,20 +12,22 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
-import javax.swing.JOptionPane;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 
 public class Interface extends javax.swing.JFrame {
-    
-    String path = null;
+
+    static String path = null;
+    String format_name = null;
 
     public Interface(String path) {
         this.path = path;
-        
+
         initComponents();
 
         setLocationRelativeTo(null);
 
-        rightPanel.setVisible(true);
+        rightPanel.setVisible(false);
 
         JButton b = new JButton();
         b.setText("Voir la Carte d'Identité");
@@ -162,7 +165,7 @@ public class Interface extends javax.swing.JFrame {
         reasonVisitLabel.setText("Raison de la visite: -");
 
         timeVisitLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        timeVisitLabel.setText("Durée de la visite:  -");
+        timeVisitLabel.setText("Durée de la visite:  - jours");
 
         javax.swing.GroupLayout rightPanelLayout = new javax.swing.GroupLayout(rightPanel);
         rightPanel.setLayout(rightPanelLayout);
@@ -266,8 +269,8 @@ public class Interface extends javax.swing.JFrame {
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
-   
-    public void getWaitFiles() {
+
+    public static void getWaitFiles() {
         File repertoire = new File(path + "\\ATTENTE");
         String liste[] = repertoire.list();
 
@@ -284,7 +287,7 @@ public class Interface extends javax.swing.JFrame {
         dataList.setModel(defaultListModel);
     }
 
-    public void getFileData() {
+    public static void getFileData() {
         String file = path + "\\TRAITEMENT\\info.txt";
         ArrayList<String> lines = new ArrayList();
 
@@ -292,7 +295,6 @@ public class Interface extends javax.swing.JFrame {
             lines.clear();
             String line;
             while ((line = br.readLine()) != null) {
-                //System.out.println(line);
                 lines.add(line);
             }
         } catch (IOException e) {
@@ -315,10 +317,9 @@ public class Interface extends javax.swing.JFrame {
 
         timeVisitLabel.setText("Durée de la visite: " + lines.get(7).substring(lines.get(7).indexOf("\"") + 1, lines.get(7).length() - 1) + " jours");
 
-        for (int i = 0; i < lines.size(); i++) {
+        /*for (int i = 0; i < lines.size(); i++) {
             System.out.println(lines.get(i).substring(lines.get(i).indexOf("\"") + 1, lines.get(i).length() - 1));
-        }
-
+        }*/
         rightPanel.setVisible(true);
 
     }
@@ -343,23 +344,12 @@ public class Interface extends javax.swing.JFrame {
 
     private void dataListMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_dataListMouseClicked
         rightPanel.setVisible(false);
+        
+        enableAction(false);
 
-        /*JOptionPane.showOptionDialog(null,
-                "Nous récupérons les informations sur cette demande, un instant ...",
-                "Récupération de la demande", JOptionPane.DEFAULT_OPTION,
-                JOptionPane.INFORMATION_MESSAGE, null, new Object[]{}, null);*/
-        getFileData();
+        format_name = dataList.getSelectedValue().replace(" ", "$");
 
-        /*try {
-            String[] cmd = {"sh", "C:\\Users\\Tanguy\\Documents\\CONTROL\\test.sh"};
-            Process p = Runtime.getRuntime().exec(cmd);
-            p.waitFor();
-        } catch (InterruptedException ex) {
-            Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
-            Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
-        }*/
-
+        actionProgress(-1);
     }//GEN-LAST:event_dataListMouseClicked
 
     private void viewCNIButtonActionPerformed(java.awt.event.ActionEvent evt) {
@@ -374,34 +364,94 @@ public class Interface extends javax.swing.JFrame {
     }
 
     private void acceptButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_acceptButtonActionPerformed
-
-        // Call accept script
-
+        actionProgress(1);
     }//GEN-LAST:event_acceptButtonActionPerformed
 
     private void refuseButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_refuseButtonActionPerformed
-
-        // Call refuse script
-
+        actionProgress(0);
     }//GEN-LAST:event_refuseButtonActionPerformed
 
+    public void actionProgress(int type) {
+        EventQueue.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+
+                if (type == -1) {
+                    try {
+                        String[] cmd = {"sh", path + "\\treatment.sh", "'" + format_name + "'"};
+                        Process p = Runtime.getRuntime().exec(cmd);
+                        p.waitFor();
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
+                    } catch (IOException ex) {
+                        Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                } else {
+                    enableAction(false);
+                    try {
+                        String[] cmd = {"sh", path + "\\sentence.sh", "" + type, "'" + format_name + "'"};
+                        Process p = Runtime.getRuntime().exec(cmd);
+                        p.waitFor();
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
+                    } catch (IOException ex) {
+                        Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+
+                new BackgroundWorker(type).execute();
+            }
+
+        });
+    }
+
+    public static void clearData() {
+        nameLabel.setText("Firstname LASTNAME");
+        ageLabel.setText("Age: - ans");
+        heightLabel.setText("Taille: - mètres");
+        weightLabel.setText("Poids: - Kg");
+        fromCountryLabel.setText("Pays d'origine: -");
+        reasonVisitLabel.setText("Raison de la visite: -");
+        timeVisitLabel.setText("Durée de la visite:  - jours");
+   }
+    
+    public static void enableAction(boolean stat) {
+        dataList.setEnabled(stat);
+        acceptButton.setEnabled(stat);
+        refuseButton.setEnabled(stat);
+    }
+
+    public static void callBack(int type) {
+        if (type == -1) {
+            enableAction(true);
+            clearData();
+            getFileData();
+        } else {
+            rightPanel.setVisible(false);
+            getWaitFiles();
+            enableAction(true);
+            clearData();
+        }
+    }
+
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton acceptButton;
-    private javax.swing.JLabel ageLabel;
+    public static javax.swing.JButton acceptButton;
+    public static javax.swing.JLabel ageLabel;
     public static javax.swing.JList<String> dataList;
-    private javax.swing.JLabel fromCountryLabel;
-    private javax.swing.JLabel heightLabel;
-    private javax.swing.JInternalFrame internalFrame;
+    public static javax.swing.JLabel fromCountryLabel;
+    public static javax.swing.JLabel heightLabel;
+    public static javax.swing.JInternalFrame internalFrame;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JMenu leaveMenu;
     private javax.swing.JPanel leftPanel;
     private javax.swing.JMenuBar menuBar;
-    private javax.swing.JLabel nameLabel;
-    private javax.swing.JLabel reasonVisitLabel;
+    public static javax.swing.JLabel nameLabel;
+    public static javax.swing.JLabel reasonVisitLabel;
     private javax.swing.JMenu refreshMenu;
-    private javax.swing.JButton refuseButton;
-    private javax.swing.JPanel rightPanel;
-    private javax.swing.JLabel timeVisitLabel;
-    private javax.swing.JLabel weightLabel;
+    public static javax.swing.JButton refuseButton;
+    public static javax.swing.JPanel rightPanel;
+    public static javax.swing.JLabel timeVisitLabel;
+    public static javax.swing.JLabel weightLabel;
     // End of variables declaration//GEN-END:variables
 }
