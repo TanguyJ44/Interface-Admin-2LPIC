@@ -1,6 +1,5 @@
 package application.pkg2lpic;
 
-import java.awt.BorderLayout;
 import java.awt.Desktop;
 import java.awt.EventQueue;
 import java.io.BufferedReader;
@@ -12,13 +11,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 
 public class Interface extends javax.swing.JFrame {
 
     static String path = null;
     String format_name = null;
+    static int action_type = -1;
 
     public Interface(String path) {
         this.path = path;
@@ -271,14 +269,14 @@ public class Interface extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     public static void getWaitFiles() {
-        File repertoire = new File(path + "\\ATTENTE");
+        File repertoire = new File(path + "/ATTENTE");
         String liste[] = repertoire.list();
 
         DefaultListModel defaultListModel = new DefaultListModel();
 
         if (liste != null) {
             for (int i = 0; i < liste.length; i++) {
-                defaultListModel.addElement(liste[i].replace("$", " ").replaceAll(".zip", ""));
+                defaultListModel.addElement(liste[i].replace("%", " ").replaceAll(".zip", ""));
             }
         } else {
             System.err.println("Nom de repertoire invalide");
@@ -288,7 +286,7 @@ public class Interface extends javax.swing.JFrame {
     }
 
     public static void getFileData() {
-        String file = path + "\\TRAITEMENT\\info.txt";
+        String file = path + "/TRAITEMENT/info.txt";
         ArrayList<String> lines = new ArrayList();
 
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
@@ -317,11 +315,7 @@ public class Interface extends javax.swing.JFrame {
 
         timeVisitLabel.setText("Durée de la visite: " + lines.get(7).substring(lines.get(7).indexOf("\"") + 1, lines.get(7).length() - 1) + " jours");
 
-        /*for (int i = 0; i < lines.size(); i++) {
-            System.out.println(lines.get(i).substring(lines.get(i).indexOf("\"") + 1, lines.get(i).length() - 1));
-        }*/
         rightPanel.setVisible(true);
-
     }
 
     private void leaveMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_leaveMenuActionPerformed
@@ -344,10 +338,10 @@ public class Interface extends javax.swing.JFrame {
 
     private void dataListMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_dataListMouseClicked
         rightPanel.setVisible(false);
-        
+
         enableAction(false);
 
-        format_name = dataList.getSelectedValue().replace(" ", "$");
+        format_name = dataList.getSelectedValue().replace(" ", "%");
 
         actionProgress(-1);
     }//GEN-LAST:event_dataListMouseClicked
@@ -355,7 +349,7 @@ public class Interface extends javax.swing.JFrame {
     private void viewCNIButtonActionPerformed(java.awt.event.ActionEvent evt) {
         if (Desktop.isDesktopSupported()) {
             try {
-                File myFile = new File(path + "\\TRAITEMENT\\doc.pdf");
+                File myFile = new File(path + "/TRAITEMENT/doc.pdf");
                 Desktop.getDesktop().open(myFile);
             } catch (IOException ex) {
                 ex.printStackTrace();
@@ -372,32 +366,32 @@ public class Interface extends javax.swing.JFrame {
     }//GEN-LAST:event_refuseButtonActionPerformed
 
     public void actionProgress(int type) {
+        if (type == -1) {
+            try {
+                ProcessBuilder pb = new ProcessBuilder("/bin/sh", path + "/treatment.sh", format_name);
+                Process p = pb.start();
+                p.waitFor();
+            } catch (IOException ex) {
+                Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else {
+            enableAction(false);
+            try {
+                ProcessBuilder pb2 = new ProcessBuilder("/bin/sh", path + "/sentence.sh", "" + type, format_name);
+                Process p2 = pb2.start();
+                p2.waitFor();
+            } catch (InterruptedException ex) {
+                Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+
         EventQueue.invokeLater(new Runnable() {
             @Override
             public void run() {
-
-                if (type == -1) {
-                    try {
-                        String[] cmd = {"sh", path + "\\treatment.sh", "'" + format_name + "'"};
-                        Process p = Runtime.getRuntime().exec(cmd);
-                        p.waitFor();
-                    } catch (InterruptedException ex) {
-                        Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (IOException ex) {
-                        Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                } else {
-                    enableAction(false);
-                    try {
-                        String[] cmd = {"sh", path + "\\sentence.sh", "" + type, "'" + format_name + "'"};
-                        Process p = Runtime.getRuntime().exec(cmd);
-                        p.waitFor();
-                    } catch (InterruptedException ex) {
-                        Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
-                    } catch (IOException ex) {
-                        Logger.getLogger(Interface.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
 
                 new BackgroundWorker(type).execute();
             }
@@ -413,8 +407,8 @@ public class Interface extends javax.swing.JFrame {
         fromCountryLabel.setText("Pays d'origine: -");
         reasonVisitLabel.setText("Raison de la visite: -");
         timeVisitLabel.setText("Durée de la visite:  - jours");
-   }
-    
+    }
+
     public static void enableAction(boolean stat) {
         dataList.setEnabled(stat);
         acceptButton.setEnabled(stat);
