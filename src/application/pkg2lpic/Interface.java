@@ -1,5 +1,6 @@
 package application.pkg2lpic;
 
+import java.awt.Color;
 import java.awt.Desktop;
 import java.awt.EventQueue;
 import java.io.BufferedReader;
@@ -11,12 +12,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
+import javax.swing.JLabel;
 
 public class Interface extends javax.swing.JFrame {
 
     static String path = null;
     String format_name = null;
     static int action_type = -1;
+    static JLabel l;
 
     public Interface(String path) {
         this.path = path;
@@ -43,10 +46,18 @@ public class Interface extends javax.swing.JFrame {
                 viewCNIButtonActionPerformed(evt);
             }
         });
-
         b.setVisible(true);
-
+        
+        l = new JLabel();
+        l.setSize(200, 40);
+        l.setLocation(28, 90);
+        l.setFont(new java.awt.Font("Dialog", 1, 16));
+        l.setForeground(Color.ORANGE);
+        l.setText("Vérification ...");
+        l.setVisible(true);
+        
         internalFrame.add(b);
+        internalFrame.add(l);
 
         getWaitFiles();
     }
@@ -315,6 +326,20 @@ public class Interface extends javax.swing.JFrame {
 
         timeVisitLabel.setText("Durée de la visite: " + lines.get(7).substring(lines.get(7).indexOf("\"") + 1, lines.get(7).length() - 1) + " jours");
 
+        String format_firstname = lines.get(1).substring(lines.get(1).indexOf("\"") + 1);
+        format_firstname = format_firstname.substring(0, 1);
+        
+        if (format_firstname.equalsIgnoreCase("m") || format_firstname.equalsIgnoreCase("t") || 
+                format_firstname.equalsIgnoreCase("s") || format_firstname.equalsIgnoreCase("e")) {
+            l.setLocation(30, 90);
+            l.setForeground(Color.RED);
+            l.setText("CNI rejetée !");
+        } else {
+            l.setLocation(34, 90);
+            l.setForeground(new Color(46, 204, 113));
+            l.setText("CNI valide !");
+        }
+        
         rightPanel.setVisible(true);
     }
 
